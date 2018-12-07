@@ -31,7 +31,7 @@ private:
   {
     if((!force && last>=sampling) || (force && last!=1))
     {
-      
+      affiche();
       last = 1;
     }
     else
@@ -81,15 +81,15 @@ protected:
 
 
       for(size_t i(0); i<N; ++i){
-        valarray<double> tot(N*d);
+        valarray<double> tot(d);
         for(size_t j(0); j<N; ++j){
           if(i!=j){
-            tot += Fdrag(i, j, y)+ Fgrav(i, j, y);
-
+            tot +=  Fgrav(i, j, y);
           }
         }
+        tot /= M[i];
+        dy[slice(d * i + N * d, d, 1)] = tot;
 
-        dy[slice(d * i + N * d, d, 1)] = tot / M[i];
       }
       return dy;
     }
@@ -203,6 +203,7 @@ class Ex4Adapt : public Exercice4
 public:
   Ex4Adapt(ConfigFile configFile) : Exercice4(configFile) {
     e = configFile.get<double>("e");
+    c = 0;
   }
 
   double e;
@@ -210,10 +211,12 @@ public:
   dArray Y1;
   dArray Y2;
   dArray Y_;
+  double d;
+  bool c;
 
-  void step()
+      void step()
   {
-    AdaptDt(0.1);
+    AdaptDt();
   }
 
   void affiche()
@@ -223,25 +226,27 @@ public:
     {
       *outputFile << el << " ";
     }
-    *outputFile << e << endl;
+    *outputFile << dt << " " << d <<" " << c << endl;
   }
 
-  void AdaptDt(double e){
+  void AdaptDt(){
     dArray Y1(RK4(Y, t, dt));
     dArray Y2(RK4(Y, t, dt*0.5));
     dArray Y_(RK4(Y2, t+dt*0.5, dt*0.5));
 
     Y2 = Y_ - Y1;
-    Y2.apply(abs);
-    double d = Y2.min();
+    Y2 = abs(Y2);
+    d = Y2.max();
 
     if (d >= e){
-      dt *= 0.99 * pow((e / d), 1 / 5);
-      AdaptDt(e);
+      dt *= 0.98 * pow((e / d), 1.0 / 5.0);
+      //++c;
+      AdaptDt();
     }else {
-      dt *= pow((e/d),1/5);
+      dt *= pow((e/d),1.0/5.0);
       //dt = min(dt, tFin-dt);
       Y = Y_;
+
     }
   }
 };

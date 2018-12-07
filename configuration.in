@@ -28,8 +28,5 @@ S        = 0
 
 % Parametres numeriques :
 schema = A
-tFin     = 36000;
-nSteps   = 100000;
-sampling = 100
-output   = a.out
+e = 1;
 
