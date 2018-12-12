@@ -431,8 +431,7 @@ case {'2a','2b'}
 
     vMax = L/(mA*rMin);
 
-    sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
-    sA = input_Body([distAT,0],[vR,vT],2,mA,rA,0,0,0.3,2*pi*rA);
+    
 
     % Parametres numeriques :
     tFin     = 2*24*60*60;
@@ -444,37 +443,54 @@ case {'2a','2b'}
     ' %s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s %s'] , ...
+    ' %s=%.15g'] , ...
                     'N'         ,N                  ,...
                     'd'         ,d                  ,...
                     'tFin'      ,tFin               ,...
                     'G'         ,G                  ,...
                     'sampling'  ,sampling           ,...
-                    'e'         ,0.001               ,...
-                    sT          ,sA                 );
+                    'e'         ,0.01                );
 
     switch Ex
         case '2a'
-            f=figure();
-            ax = axes(f);
+            fOrbit=figure();
+            hold on;
+            
+            fAcc=figure();
+            hold on;
+            
+            fEff=figure();
+            hold on;
+
             %% a) (i)   ====   Comparer solution analytique et numerique:
 
             % Name of output file to generate
-            name = [Ex,'.out'];
 
+            nSimul = 100;
+            theta = asin (vT/v0);
+            epsilon = 0.01
+            voisinage = linspace ( theta -epsilon,theta + epsilon,nSimul)
+            maxEng = ones(1,nSimul);
+            minPosition = ones(1,nSimul);
+            for i = 1:nSimul
+                thetaNow = voisinage(i);
+                name = [Ex,'thetaN=',num2str(thetaNow),'.out'];
+                
+            sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
+            sA = input_Body([distAT,0],[-v0 * cos(thetaNow) ,v0 * sin(thetaNow)],2,mA,rA,0,0,0.3,2*pi*rA);
+            
 
             %%%%%  --- SIMULATION ---   %%%%%
             if (Resimulate) %test if the file exists
                 %if not:
-                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'A',nSteps);
-                    system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, sA);
+                system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
             end
 
             data = load(name); % Load generated file
-
+            
             %%%%%   --- Load data   --- %%%%%
-
+            
             t    = data(:,1);
             x1_1 = data(:,2);
             x2_1 = data(:,3);
@@ -489,21 +505,33 @@ case {'2a','2b'}
             a2   = data(:,12);
             dt   = data(:,13);
 
+            h = sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2);
+            index = 1:length(t);
+            if(min(h) <= rT + rA)
+                Range = index(h>rT+rA);
+
+                figure(fOrbit)
+                pHal = plot(x1_2(Range),x2_2(Range),'.:');
+                hold on;
+                pT = plot(x1_1(Range),x2_1(Range),'o','MarkerSize',3);
+
+                figure(fAcc)
+                plot(t(Range),a2(Range))
+                hold on;
+
+                figure(fEff)
+                plot(thetaNow,max(a2(Range)));
+                hold on;
 
 
-            pHal = plot(ax,x1_2,x2_2,'.--');
-            hold on
-            pT = plot(ax,x1_1,x2_1,'o','MarkerSize',3);
+            end
 
-            ax.XLabel.String = 'x [m]';
-            ax.YLabel.String = 'y [m]';
-
-            figure();
-            plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
-
-            figure();
-            plot(t,a2)
-
+            
+            
+            
+        end
+        figure();
+        plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
             %plotVelExp.DisplayName = 'Model';
             %plotVelTh.DisplayName   = 'Theory';
 
