@@ -64,14 +64,14 @@ Resimulate = input('Do you want to resimulate [1/0]: ');
 %%% --- Global parameters   --- %%%
 G         = 6.674e-11; %m^3kg^-1s^-2
 %Earth:
-mT = 5.972e24 %kg
-rT = 6378.1e3%m
+mT = 5.972e24; %kg
+rT = 6378.1e3;%m
 
 %Moon
-mL = 7.3477e22%kg
+mL = 7.3477e22;%kg
 
 %dist moon earth:
-dTL = 384748e3%m
+dTL = 384748e3;%m
 
 
 
@@ -83,26 +83,34 @@ case {'1a','1b','1c'}
 
     % Parametres physiques :
 
-    N        = 2
-    d        = 2
+    N        = 2;
+    d        = 2;
 
-    mA = 5809%kg
-    rA = 3.9/2.0%m
+    mA = 5809;%kg
+    rA = 3.9/2.0;%m
 
-    distA0 = 314159e3%km
+    distAT = 314159e3;%km
 
-    v0 = 1.2e3 %m/s
+    v0 = 1.2e3; %m/s
 
 
     E = 0.5 * mA * v0^2;
-    E = E - G*mA*mT/distA0;
+    E = E - G*mA*mT/distAT;
+
     rMin = 10000+rT;
 
-    vT = rMin/distA0*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/distA0));
+    vT = rMin/distAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/distAT));
     vR = -v0 * cos (asin (vT/v0));
 
+    L = mA *vT * distAT;
+
+    vMax = L/(mA*rMin);
+
+    sT = input_Body([0,0],[0,0],1,mT,rT);
+    sA = input_Body([distAT,0],[vR,vT],2,mA,rA);
+
     % Parametres numeriques :
-    tFin     = 2*24*60*60;
+    tFin     = 10*24*60*60;
     nSteps   = 100;
     sampling = 1;
 
@@ -112,54 +120,31 @@ case {'1a','1b','1c'}
     ' %s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g'] , ...
+    ' %s %s'] , ...
                     'N'         ,N                  ,...
                     'd'         ,d                  ,...
                     'tFin'      ,tFin               ,...
-                    'x1_1'      ,0                  ,...
-                    'x2_1'      ,0                  ,...
-                    'x1_2'      ,distA0             ,...
-                    'x2_2'      ,0                  ,...
-                    'v1_1'      ,0                  ,...
-                    'v2_1'      ,0                  ,...
-                    'v1_2'      ,vR                 ,...
-                    'v2_2'      ,vT                 ,...
-                    'm_1'       ,mT                 ,...
-                    'r_1'       ,rT                 ,...
-                    'm_2'       ,mA                 ,...
-                    'r_2'       ,rA                 ,...
                     'G'         ,G                  ,...
-                    'rho'       ,0                  ,...
-                    'S'         ,0                  ,...
-                    'Cx'        ,0                  ,...
-                    'sampling'  ,sampling);
+                    'sampling'  ,sampling           ,...
+                    'e'         ,0.01               ,...
+                    sT          ,sA                 );
 
     switch Ex
         case '1a'
-            f=figure();
+
+            %Trajectoir apollo 13 pas de temps fixe
+            f  = figure();
             ax = axes(f);
             hold on;
             name = [Ex,'.out'];
+
+            nSteps   = 1000;
 
 
             %%%%%  --- SIMULATION ---   %%%%%
             if (Resimulate) %test if the file exists
                 %if not:
-                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'A',nSteps);
+                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'F',nSteps);
                 system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
             end
 
@@ -183,28 +168,35 @@ case {'1a','1b','1c'}
             pT = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
 
 
-            ax.XLabel.String = 'x [m]'
-            ax.YLabel.String = 'y [m]'
+            ax.XLabel.String = 'x [m]';
+            ax.YLabel.String = 'y [m]';
             %plotVelExp.DisplayName = 'Model';
             %plotVelTh.DisplayName   = 'Theory';
 
             legend;
 
         case '1b'
-            f=figure();
+            f  = figure();
             ax = axes(f);
             hold on;
 
-            distanceMin = ones(1,20);
-            nSteps = logspace(4,6,20)
-            for i = 1:20;
+            %Convergence of fixed time step rungge
+
+            nSimul = 50;
+
+            distanceMin = ones(1,nSimul);
+            velocityMax = ones(1,nSimul);
+            nSteps = logspace(4,5,nSimul);
+            for i = 1:nSimul
                 name = [Ex,'nSteps=',num2str(nSteps(i)),'.out'];
 
 
                 %%%%%  --- SIMULATION ---   %%%%%
                 if (Resimulate) %test if the file exists
                     %if not:
-                    cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'F',nSteps(i));
+                    cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' ,...
+                     repertoire, executable, inputName,...
+                     config ,name,'F',nSteps(i));
                     system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
                 end
 
@@ -223,44 +215,120 @@ case {'1a','1b','1c'}
                 v2_2    = data(:,9);
 
                 pHal = plot(ax,x1_2,x2_2,'.--');
-                pT = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
+                pT   = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
 
-                distanceMin(i)= min(sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2)-rT);
+                index = 1:length(t);
 
-            ax.XLabel.String = 'x [m]'
-            ax.YLabel.String = 'y [m]'
+                v = sqrt((v1_1-v1_2).^2+(v2_1-v2_2).^2);
+                velocityMax(i) = max(v);
 
+                h = sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2);
+                distanceMin(i) = min(h);
+
+                iMin = index(distanceMin(i)>=h);
+                iMax = index(velocityMax(i)<=v);
+
+
+                hinter = h(iMin-2:iMin+2)
+                hfit = fit(t(iMin-2:iMin+2),hinter,'poly2');
+                x=-hfit.p2/(2*hfit.p1);
+
+                %plot(x1_2(iMin),x2_2(iMin),'bx','MarkerSize',10);
+
+                distanceMin(i)=x^2*hfit.p1 + x*hfit.p2 + hfit.p3 -rMin;
+
+                vinter = v(iMax-2:iMax+2);
+                %plot(x1_2(iMax),x2_2(iMax),'rx','MarkerSize',10);
+                vfit = fit(t(iMax-2:iMax+2),vinter,'poly2');
+                x=-vfit.p2/(2*vfit.p1);
+
+                velocityMax(i)=abs(x^2*vfit.p1 + x*vfit.p2 + vfit.p3-vMax);
+
+                ax.XLabel.String = 'x [m]';
+                ax.YLabel.String = 'y [m]';
+
+                legend;
             end
+            f= figure();
+            ax = axes(f);
 
-            f= figure()
-            ax = axes(f)
 
             plot(ax,nSteps,distanceMin,'+');
+            ax.XScale = 'log';
+            ax.YScale = 'log';
+
+            f= figure();
+            ax = axes(f);
+
+            plot(ax,nSteps,velocityMax,'+');
+            ax.XScale = 'log';
+            ax.YScale = 'log';
+
+        case '1c'
+            %Trajectoir apollo 13 pas de temps fixe
+            f  = figure();
+            ax = axes(f);
+            hold on;
+            name = [Ex,'.out'];
+
+            e = 1;
 
 
+            %%%%%  --- SIMULATION ---   %%%%%
+            if (Resimulate) %test if the file exists
+                %if not:
+                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g e=%.15g' , repertoire, executable, inputName,config ,name,'A',1000,e);
+                system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+            end
 
+            data = load(name); % Load generated file
+
+            %%%%%   --- Load data   --- %%%%%
+
+            t       = data(:,1);
+            x1_1    = data(:,2);
+            x2_1    = data(:,3);
+            x1_2    = data(:,4);
+            x2_2    = data(:,5);
+            v1_1    = data(:,6);
+            v2_1    = data(:,7);
+            v1_2    = data(:,8);
+            v2_2    = data(:,9);
+            %dt = data(:,10);
+            %d = data(:,11);
+            pHal = plot(ax,x1_2,x2_2,'.--');
+            hold on
+            pT = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
+
+
+            ax.XLabel.String = 'x [m]';
+            ax.YLabel.String = 'y [m]';
             %plotVelExp.DisplayName = 'Model';
             %plotVelTh.DisplayName   = 'Theory';
 
             legend;
-
-        case '1c'
+        case '1d'
 
             f=figure();
             ax = axes(f);
             hold on;
 
-            distanceMin = ones(1,20);
-            e = logspace(-1,-4,20);
-            nSteps = ones(1,20);
-            for i = 1:20;
+            nSimul = 100;
+
+            distanceMin = ones(1,nSimul);
+            velocityMax = ones(1,nSimul);
+            e = logspace(-3,-6,nSimul);
+            nSteps = ones(1,nSimul);
+            for i = 1:nSimul
                 name = [Ex,'e=',num2str(e(i)),'.out'];
 
 
                 %%%%%  --- SIMULATION ---   %%%%%
                 if (Resimulate) %test if the file exists
                     %if not:
-                    cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g e=%.15g' , repertoire, executable, inputName,config ,name,'A',1000,e(i));
+                    cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g e=%.15g' ,...
+                        repertoire, executable, inputName,...
+                        config ,name,'A',1000,e(i));
                     system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
                 end
 
@@ -280,20 +348,54 @@ case {'1a','1b','1c'}
                 nSteps(i)= length(t);
 
                 pHal = plot(ax,x1_2,x2_2,'.--');
-                pT = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
+                pT   = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
 
-                distanceMin(i)= min(sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2)-rT);
+                index = 1:length(t);
+
+                v = sqrt((v1_1-v1_2).^2+(v2_1-v2_2).^2);
+                velocityMax(i) = max(v);
+
+                h = sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2);
+                distanceMin(i) = min(h);
+
+                iMin = index(distanceMin(i)>=h);
+                iMax = index(velocityMax(i)<=v);
 
 
-            ax.XLabel.String = 'x [m]'
-            ax.YLabel.String = 'y [m]'
+                hinter = h(iMin-2:iMin+2);
+                hfit = fit(t(iMin-2:iMin+2),hinter,'poly2');
+                x=-hfit.p2/(2*hfit.p1);
+                
+                %plot(x1_2(iMin),x2_2(iMin),'bx','MarkerSize',10);
+
+                distanceMin(i)=x^2*hfit.p1 + x*hfit.p2 + hfit.p3- rMin;
+
+                vinter = v(iMax-2:iMax+2);
+                %plot(x1_2(iMax),x2_2(iMax),'rx','MarkerSize',10);
+                vfit = fit(t(iMax-2:iMax+2),vinter,'poly2');
+                x=-vfit.p2/(2*vfit.p1);
+
+                velocityMax(i)=abs(x^2*vfit.p1 + x*vfit.p2 + vfit.p3-vMax);
+
+                ax.XLabel.String = 'x [m]';
+                ax.YLabel.String = 'y [m]';
 
             end
 
-            f= figure()
-            ax = axes(f)
+            f= figure();
+            ax = axes(f);
+
 
             plot(ax,nSteps,distanceMin,'+');
+            ax.XScale = 'log';
+            ax.YScale = 'log';
+
+            f= figure();
+            ax = axes(f);
+
+            plot(ax,nSteps,velocityMax,'+');
+            ax.XScale = 'log';
+            ax.YScale = 'log';
 
 
 
@@ -306,6 +408,112 @@ case {'1a','1b','1c'}
 case {'2a','2b'}
  % Parametres physiques :
 
+    N        = 2;
+    d        = 2;
+
+    mA = 5809;%kg
+    rA = 3.9/2.0;%m
+
+    distAT = 314159e3;%km
+
+    v0 = 1.2e3; %m/s
+
+
+    E = 0.5 * mA * v0^2;
+    E = E - G*mA*mT/distAT;
+
+    rMin = 10000+rT;
+
+    vT = rMin/distAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/distAT));
+    vR = -v0 * cos (asin (vT/v0));
+
+    L = mA *vT * distAT;
+
+    vMax = L/(mA*rMin);
+
+    sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
+    sA = input_Body([distAT,0],[vR,vT],2,mA,rA,0,0,0.3,2*pi*rA);
+
+    % Parametres numeriques :
+    tFin     = 2*24*60*60;
+    nSteps   = 1000;
+    sampling = 1;
+
+    config = sprintf(  ['%s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s %s'] , ...
+                    'N'         ,N                  ,...
+                    'd'         ,d                  ,...
+                    'tFin'      ,tFin               ,...
+                    'G'         ,G                  ,...
+                    'sampling'  ,sampling           ,...
+                    'e'         ,0.001               ,...
+                    sT          ,sA                 );
+
+    switch Ex
+        case '2a'
+            f=figure();
+            ax = axes(f);
+            %% a) (i)   ====   Comparer solution analytique et numerique:
+
+            % Name of output file to generate
+            name = [Ex,'.out'];
+
+
+            %%%%%  --- SIMULATION ---   %%%%%
+            if (Resimulate) %test if the file exists
+                %if not:
+                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'A',nSteps);
+                    system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+            end
+
+            data = load(name); % Load generated file
+
+            %%%%%   --- Load data   --- %%%%%
+
+            t    = data(:,1);
+            x1_1 = data(:,2);
+            x2_1 = data(:,3);
+            x1_2 = data(:,4);
+            x2_2 = data(:,5);
+            v1_1 = data(:,6);
+            v2_1 = data(:,7);
+            v1_2 = data(:,8);
+            v2_2 = data(:,9);
+            eng  = data(:,10);
+            a1   = data(:,11);
+            a2   = data(:,12);
+            dt   = data(:,13);
+
+
+
+            pHal = plot(ax,x1_2,x2_2,'.--');
+            hold on
+            pT = plot(ax,x1_1,x2_1,'o','MarkerSize',3);
+
+            ax.XLabel.String = 'x [m]';
+            ax.YLabel.String = 'y [m]';
+
+            figure();
+            plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
+
+            figure();
+            plot(t,a2)
+
+            %plotVelExp.DisplayName = 'Model';
+            %plotVelTh.DisplayName   = 'Theory';
+
+            legend;
+        case '2b'
+    end
+
+
+case {'3b','3a'}
+
     N        = 2
     d        = 2
 
@@ -314,8 +522,8 @@ case {'2a','2b'}
 
     distTL0 = 384748e3%m
 
-    Alpha = mL/(mT+mL)
-    Beta = mT/(mT+mL)
+    Alpha = mL/(mT+mL);
+    Beta = mT/(mT+mL);
 
     vT = sqrt(G*Alpha*mL/distTL0);
     vL = sqrt(G*Beta*mT/distTL0);
@@ -327,50 +535,27 @@ case {'2a','2b'}
     nSteps   = 100;
     sampling = 1;
 
+    sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
+    sL = input_Body([dL,0],[0,vL],2,mL,rL);
+
     config = sprintf(  ['%s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
     ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g'] , ...
+    ' %s %s'] , ...
                     'N'         ,N                  ,...
                     'd'         ,d                  ,...
                     'tFin'      ,tFin               ,...
-                    'x1_1'      ,-dT                  ,...
-                    'x2_1'      ,0                  ,...
-                    'x1_2'      ,dL                 ,...
-                    'x2_2'      ,0                  ,...
-                    'v1_1'      ,0                  ,...
-                    'v2_1'      ,-vT                ,...
-                    'v1_2'      ,0                 ,...
-                    'v2_2'      ,vL                 ,...
-                    'm_1'       ,mT                 ,...
-                    'r_1'       ,rT                 ,...
-                    'm_2'       ,mL                 ,...
-                    'r_2'       ,rL                 ,...
                     'G'         ,G                  ,...
-                    'rho'       ,0                  ,...
-                    'S'         ,0                  ,...
-                    'Cx'        ,0                  ,...
                     'sampling'  ,sampling           ,...
-                    'e'         ,0.01            );
+                    'e'         ,0.01               ,...
+                    sT          ,sL                 );
     switch Ex
-        case '2a'
+
+        case '3a'
+
             f=figure();
             ax = axes(f);
             %% a) (i)   ====   Comparer solution analytique et numerique:
@@ -414,124 +599,10 @@ case {'2a','2b'}
             %plotVelExp.DisplayName = 'Model';
             %plotVelTh.DisplayName   = 'Theory';
 
+                  figure();
+            plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
+
             legend;
-        end
-
-
-case {'3b','3a'}
-
-    f=figure();
-            ax = axes(f);
-            hold on;
-
-    % Parametres physiques :
-
-    N        = 2
-    d        = 2
-
-    mA = 5809%kg
-    rA = 3.9/2.0%m
-
-    distA0 = 314159e3%km
-
-    v0 = 1.2e3 %m/s
-
-
-    E = 0.5 * mA * v0^2;
-    E = E - G*mA*mT/distA0;
-
-    vT = sqrt(2*mA*mA*mT*G*(10000+rT)*(1+E/(mA*mA*mA*mT*mT*G*G)))/(mA*distA0);
-    vR = -v0 * cos (asin (vT/v0));
-
-    % Parametres numeriques :
-    tFin     = 100*24*60*60;
-    nSteps   = 100;
-    sampling = 1;
-
-    config = sprintf(  ['%s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%.15g' ...
-    ' %s=%s'] , ...
-                    'N'         ,N                  ,...
-                    'd'         ,d                  ,...
-                    'tFin'      ,tFin               ,...
-                    'nSteps'    ,nSteps             ,...
-                    'x1_1'      ,0                  ,...
-                    'x2_1'      ,0                  ,...
-                    'x1_2'      ,distA0             ,...
-                    'x2_2'      ,0                  ,...
-                    'v1_1'      ,0                  ,...
-                    'v2_1'      ,0                  ,...
-                    'v1_2'      ,vR                 ,...
-                    'v2_2'      ,vT                 ,...
-                    'm_1'       ,mT                 ,...
-                    'r_1'       ,rT                 ,...
-                    'm_2'       ,mA                 ,...
-                    'r_2'       ,rA                 ,...
-                    'G'         ,G                  ,...
-                    'rho'       ,0                  ,...
-                    'S'         ,0                  ,...
-                    'Cx'        ,0                  ,...
-                    'sampling'  ,sampling           ,...
-                    'e'         ,0.1                ,...
-                    'schema','A');
-
-        name = [Ex,'.out'];
-
-
-            %%%%%  --- SIMULATION ---   %%%%%
-            if (Resimulate) %test if the file exists
-                %if not:
-                cmd = sprintf('%s%s %s %s output=%s', repertoire, executable, inputName,config ,name);
-                system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
-            end
-
-            data = load(name); % Load generated file
-
-            %%%%%   --- Load data   --- %%%%%
-
-            t       = data(:,1);
-            x1_1    = data(:,2);
-            x2_1    = data(:,3);
-            x1_2    = data(:,4);
-            x2_2    = data(:,5);
-            v1_1    = data(:,6);
-            v2_1    = data(:,7);
-            v1_2    = data(:,8);
-            v2_2    = data(:,9);
-            %dt = data(:,10);
-            %d = data(:,11);
-
-
-
-            pHal = plot(ax,x1_2,x2_2,'.--');
-            hold on
-            pT = plot(ax,x1_1,x2_1,'o','MarkerSize',20);
-
-            ax.XLabel.String = 'x [m]'
-            ax.YLabel.String = 'y [m]'
-
-    switch Ex
-        case '3a'
 
         case '3b'
 
@@ -557,4 +628,44 @@ case {'6a','6b'}
         case '6a'
         case '6b'
     end
+end
+
+
+function inputS =  input_Body(x,v,N,m,r,varargin)
+%myFun - Description
+%
+% Syntax: string = myFun(pos,vel,number,mass,radius,rho,lambda,Cx,S)
+%
+% Long description
+    s = '';
+    for index = 1:length(x)
+        i = num2str(index);
+        n = num2str(N);
+        s = strcat(s,['x' i  '_' n '=' num2str(x(index))]);
+        s= strcat(s," ");
+        s = strcat(s, ['v' i  '_' n '=' num2str(v(index))]);
+        s= strcat(s," ");
+    end
+
+    s = strcat(s, ['m_' n '=' num2str(m)]);
+    s= strcat(s," ");
+    s = strcat(s, ['r_' n '=' num2str(r)]);
+    s= strcat(s," ");
+
+    if not(length(varargin)==4)
+        s = strcat(s, ['rho_' n '=' num2str(0)]);
+        s= strcat(s," ");
+        s = strcat(s, ['Cx_' n '=' num2str(0)]);
+        s= strcat(s," ");
+    else
+        s = strcat(s, ['rho_' n '=' num2str(varargin{1})]);
+        s= strcat(s," ");
+        s = strcat(s, ['lambda_' n '=' num2str(varargin{2})]);
+        s= strcat(s," ");
+        s = strcat(s, ['Cx_' n '=' num2str(varargin{3})]);
+        s= strcat(s," ");
+        s = strcat(s, ['S_' n '=' num2str(varargin{4})]);
+        s= strcat(s," ");
+    end
+    inputS = s;
 end

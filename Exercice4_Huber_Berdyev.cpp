@@ -12,19 +12,19 @@ typedef valarray<double> dArray;
 
 double square (double x) {return x*x;}
 
+double norm( dArray x){return sqrt((x.apply(square)).sum());}
+
 class Exercice4{
 
 private:
 
   //Simulation parameters
   int sampling, last;
-  double tFin;
 
   //Physical parameters
 
   size_t d; //dimension
-  size_t N; //number of bodies
-  double G,rho,Cx,S;
+  double G;
 
 
   void printOut(bool force)
@@ -42,54 +42,96 @@ private:
 
   virtual void affiche() = 0;
 
+  double dist(size_t i, size_t j, const dArray& y){
+    dArray distance(y[slice(d * i, d, 1)] - y[slice(d * j, d, 1)]);
+    dArray distSquare(distance.apply(square));
+    return (sqrt(distSquare.sum()));
+  }
+
+  double relVel(size_t i, size_t j, const dArray& y){
+    dArray relVel(y[slice(d * i + N*d, d, 1)] - y[slice(d * j+N*d,  d, 1)]);
+    dArray relVelSquare(relVel.apply(square));
+    return (sqrt(relVelSquare.sum()));
+  }
+
+
+  double potGrav(size_t i, size_t j, const dArray& y){
+    double normD(dist(i,j,y));
+    return - G * M[i] * M[j] / normD;
+  }
+
+  double kinEng(size_t i, const dArray& y){
+    dArray Vel(y[slice(d * i + N * d, d, 1)]);
+    dArray VelSquare(Vel.apply(square));
+    double normV(norm(VelSquare));
+    return M[i] * normV * normV * 0.5;
+  }
+
+
   dArray Fgrav(size_t i, size_t j, const dArray& y){
     dArray distance(y[slice(d*i,  d, 1)] - y[slice(d*j,  d, 1)]) ;
     dArray distSquare(distance.apply(square));
     double normD(sqrt(distSquare.sum()));
-    return -G * M[i] * M[j] / pow(normD,3) * distance;
+    return -G * M[i] * M[j] / pow(normD,3.0) * distance;
   }
 
-  dArray Fdrag(size_t i, size_t j, const dArray& y){
+  dArray Fdrag(size_t body, size_t other, const dArray& y){
 
-    dArray distance(y[slice(d * i, d, 1)] - y[slice(d * j, d, 1)]);
-    dArray distSquare(distance.apply(square));
-    double normD(sqrt(distSquare.sum()));
+    //Fdrag of other on body
+    double normD(dist(body,other,y));
 
-    dArray relVel(y[slice(d * i + N*d, d, 1)] - y[slice(d * j+N*d,  d, 1)]);
+    dArray relVel(y[slice(d *body + N*d, d, 1)] - y[slice(d * other+N*d,  d, 1)]);
     dArray relVelSquare(relVel.apply(square));
     double normV(sqrt(relVelSquare.sum()));
 
-    return -0.5 * rho * S * Cx * normD * normV * relVel;
+    return -0.5 * rho(normD,other) * S[body] * Cx[body] * normV * relVel;
+  }
+
+  double rho(double dist, size_t i){
+    return Rho[i]*exp(-(dist-R[i])/Lambda[i]);
   }
 
   virtual void step() = 0;
 
 protected:
     double dt;
+    
+  size_t N; //number of bodies
     double t;
     dArray Y;//position and velocity
     dArray M;
     dArray R;
+    dArray Rho;
+    dArray Cx;
+    dArray S;
+    dArray Lambda;
+
+    double tFin;
 
     double nSteps;
 
     ofstream *outputFile;
 
+    dArray a(size_t body, const dArray& y){
+
+      dArray acc(d);
+
+      for(size_t other(0); other<N; ++other){
+          if(body!=other){
+            acc +=  Fgrav(body, other, y) + Fdrag(body,other,y);
+          }
+        }
+      acc /= M[body];
+      return acc;
+
+    }
+
     dArray f(const dArray& y, double t){
       dArray dy(y);
       dy[slice(0,N*d,1)] = y[slice(N*d,N*d,1)];
 
-
       for(size_t i(0); i<N; ++i){
-        valarray<double> tot(d);
-        for(size_t j(0); j<N; ++j){
-          if(i!=j){
-            tot +=  Fgrav(i, j, y);
-          }
-        }
-        tot /= M[i];
-        dy[slice(d * i + N * d, d, 1)] = tot;
-
+        dy[slice(d * i + N * d, d, 1)] = a(i,y);
       }
       return dy;
     }
@@ -102,6 +144,20 @@ protected:
       dArray k4(dt * f(yi+k3, ti+dt));
       return yi + 1/6.0*(k1+2.0*k2+2.0*k3+k4);
     }
+    double energyTot(){
+      double potSum(0);
+      double kinSum(0);
+
+      for(size_t i = 0; i < N; i++)
+      {
+        for(size_t j = 0; j < N; j++)
+        {
+          if(i!=j) potSum += potGrav(i,j,Y);
+        }
+        kinSum += kinEng(i,Y);
+      }
+      return kinSum + potSum * 0.5;
+    }
 
 
 
@@ -112,29 +168,26 @@ protected:
       tFin     = configFile.get<double>("tFin");
       nSteps   = configFile.get<int>("nSteps");
       dt       = tFin/nSteps;
+
       sampling = configFile.get<unsigned int>("sampling");
       N        = configFile.get<size_t>("N");
       d        = configFile.get<size_t>("d");
       G        = configFile.get<double>("G");
-      rho      = configFile.get<double>("rho");
-      Cx       = configFile.get<double>("Cx");
-      S        = configFile.get<double>("S");
 
-      Y = dArray(2*N*d);
-      M = dArray(N);
-      R = dArray(N);
-
+      Y      = dArray(2*N*d);
+      M      = dArray(N);
+      R      = dArray(N);
+      Rho    = dArray(N);
+      Cx     = dArray(N);
+      S      = dArray(N);
+      Lambda = dArray(N);
 
       for(size_t i(0); i < N;++i){
         for(size_t j(0); j < d;++j){
           string key("x" + to_string(j + 1) + "_" + to_string(i + 1)); //Convention xj_i
           Y[i * d + j] = configFile.get<double>(key);
-        }
-      }
 
-      for (size_t i(0); i < N; ++i){
-        for (size_t j(0); j < d; ++j){
-          string key("v" + to_string(j + 1) + "_" + to_string(i + 1)); //Convention vj_i
+          key = ("v" + to_string(j + 1) + "_" + to_string(i + 1)); //Convention vj_i
           Y[i * d + j+N*d] = configFile.get<double>(key);
         }
       }
@@ -142,14 +195,30 @@ protected:
       for (size_t i(0); i < N; ++i){
         string key("m_" + to_string(i + 1)); //Convention m_i
         M[i] = configFile.get<double>(key);
-      }
 
-
-      for (size_t i(0); i < N; ++i){
-        string key("r_" + to_string(i + 1)); //Convention r_i
+        key = ("r_" + to_string(i + 1)); //Convention r_i
         R[i] = configFile.get<double>(key);
-      }
 
+        key = ("rho_" + to_string(i + 1)); //Convention rho_i
+        Rho[i] = configFile.get<double>(key);
+
+        if(Rho[i]!=0){
+        key = ("lambda_" + to_string(i + 1)); //Convention lambda_i
+        Lambda[i] = configFile.get<double>(key);
+        }else{
+          Lambda[i] = 0;
+        }
+
+        key = ("Cx_" + to_string(i + 1)); //Convention Cx_i
+        Cx[i] = configFile.get<double>(key);
+
+        if(Cx[i]!=0){
+          key = ("S_" + to_string(i + 1)); //Convention S_i
+          S[i] = configFile.get<double>(key);
+        }else{
+          S[i] = 0;
+        }
+      }
 
       // Ouverture du fichier de sortie
       outputFile = new ofstream(configFile.get<string>("output").c_str());
@@ -190,7 +259,12 @@ public:
     {
       *outputFile << el << " ";
     }
-    *outputFile << endl;
+    *outputFile << energyTot() << " ";
+    for (size_t i(0); i < N; ++i)
+    {
+      *outputFile << norm(a(i,Y)) << " ";
+    }
+    *outputFile<< endl;
   }
 
   void step(){
@@ -226,7 +300,12 @@ public:
     {
       *outputFile << el << " ";
     }
-    *outputFile << dt << " " << d <<" " << c << endl;
+    *outputFile << energyTot() << " ";
+    for (size_t i(0); i < N; ++i)
+    {
+      *outputFile << norm(a(i,Y)) << " ";
+    }
+    *outputFile << dt << " " << endl;
   }
 
   void AdaptDt(){
@@ -244,7 +323,7 @@ public:
       AdaptDt();
     }else {
       dt *= pow((e/d),1.0/5.0);
-      //dt = min(dt, tFin-dt);
+      dt = min(dt, tFin-dt);
       Y = Y_;
 
     }
