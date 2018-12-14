@@ -8,11 +8,16 @@
 
 using namespace std;
 
-typedef valarray<double> dArray;
+typedef valarray<long double> dArray;
 
-double square (double x) {return x*x;}
+long double square (long double x) {return x*x;}
 
-double norm( dArray x){return sqrt((x.apply(square)).sum());}
+long double norm( dArray const & x){
+  long double s(0);
+  for(auto el : x){
+    s += el * el;
+  }
+  return sqrt(s);}
 
 class Exercice4{
 
@@ -24,7 +29,7 @@ private:
   //Physical parameters
 
   size_t d; //dimension
-  double G;
+  long double G;
 
 
   void printOut(bool force)
@@ -42,62 +47,76 @@ private:
 
   virtual void affiche() = 0;
 
-  double dist(size_t i, size_t j, const dArray& y){
-    dArray distance(y[slice(d * i, d, 1)] - y[slice(d * j, d, 1)]);
-    dArray distSquare(distance.apply(square));
-    return (sqrt(distSquare.sum()));
-  }
 
-  double relVel(size_t i, size_t j, const dArray& y){
+  long double relVel(size_t i, size_t j, const dArray& y){
     dArray relVel(y[slice(d * i + N*d, d, 1)] - y[slice(d * j+N*d,  d, 1)]);
     dArray relVelSquare(relVel.apply(square));
     return (sqrt(relVelSquare.sum()));
   }
 
 
-  double potGrav(size_t i, size_t j, const dArray& y){
-    double normD(dist(i,j,y));
+  long double potGrav(size_t i, size_t j, const dArray& y){
+    long double normD(dist(i,j,y));
     return - G * M[i] * M[j] / normD;
   }
 
-  double kinEng(size_t i, const dArray& y){
+  long double kinEng(size_t i, const dArray& y){
     dArray Vel(y[slice(d * i + N * d, d, 1)]);
-    dArray VelSquare(Vel.apply(square));
-    double normV(norm(VelSquare));
-    return M[i] * normV * normV * 0.5;
+    long double normV(norm(Vel));
+    return M[i] * normV * normV * 0.5L;
+  }
+
+  dArray pnc(const dArray& y){
+    dArray Pnc(N);
+    for (size_t i(0); i < N; ++i){
+      long double pnci(0.0);
+      for(size_t j(0); j < N; ++j){
+        if(i!=j){
+          dArray fd(Fdrag(i,j,y));
+          for(size_t k(0); k < d; ++k){
+            pnci += y[d*i+N*d+k] + fd[k];
+          }
+        }
+
+      }
+      Pnc[i] = pnci;
+    }
+    return Pnc;
   }
 
 
   dArray Fgrav(size_t i, size_t j, const dArray& y){
     dArray distance(y[slice(d*i,  d, 1)] - y[slice(d*j,  d, 1)]) ;
     dArray distSquare(distance.apply(square));
-    double normD(sqrt(distSquare.sum()));
+    long double normD(sqrt(distSquare.sum()));
     return -G * M[i] * M[j] / pow(normD,3.0) * distance;
   }
 
   dArray Fdrag(size_t body, size_t other, const dArray& y){
 
     //Fdrag of other on body
-    double normD(dist(body,other,y));
+    long double normD(dist(body,other,y));
 
     dArray relVel(y[slice(d *body + N*d, d, 1)] - y[slice(d * other+N*d,  d, 1)]);
-    dArray relVelSquare(relVel.apply(square));
-    double normV(sqrt(relVelSquare.sum()));
+  
+    long double normV(norm(relVel));
 
-    return -0.5 * rho(normD,other) * S[body] * Cx[body] * normV * relVel;
+    return -0.5L * rho(normD,other) * S[body] * Cx[body] * normV * relVel;
   }
 
-  double rho(double dist, size_t i){
-    return Rho[i]*exp(-(dist-R[i])/Lambda[i]);
+  long double rho(long double dist, size_t i){
+    if(Rho[i]==0) return 0;
+    else return Rho[i]*exp(-(dist-R[i])/Lambda[i]);
   }
 
   virtual void step() = 0;
 
 protected:
-    double dt;
+    long double dt;
     
-  size_t N; //number of bodies
-    double t;
+    size_t N; //number of bodies
+    long double t;
+    dArray Pnc;
     dArray Y;//position and velocity
     dArray M;
     dArray R;
@@ -106,15 +125,17 @@ protected:
     dArray S;
     dArray Lambda;
 
-    double tFin;
+    long double tFin;
 
-    double nSteps;
+    long double nSteps;
 
     ofstream *outputFile;
 
     dArray a(size_t body, const dArray& y){
 
-      dArray acc(d);
+      long double z(0);
+
+      dArray acc(z,d);
 
       for(size_t other(0); other<N; ++other){
           if(body!=other){
@@ -126,27 +147,35 @@ protected:
 
     }
 
-    dArray f(const dArray& y, double t){
+    long double dist(size_t i, size_t j, const dArray& y){
+      dArray distance(y[slice(d * i, d, 1)] - y[slice(d * j, d, 1)]);
+      return (norm(distance));
+    }
+
+    dArray f(const dArray& y, long double t){
       dArray dy(y);
+
       dy[slice(0,N*d,1)] = y[slice(N*d,N*d,1)];
 
       for(size_t i(0); i<N; ++i){
+
         dy[slice(d * i + N * d, d, 1)] = a(i,y);
       }
       return dy;
     }
 
-    dArray RK4(const dArray& yi, double ti, double dt)
+    dArray RK4(const dArray& yi, long double ti, long double dt)
     {
       dArray k1(dt * f(yi, ti));
-      dArray k2(dt * f(yi+0.5*k1, ti+0.5*dt));
-      dArray k3(dt * f(yi+0.5*k2, ti+0.5*dt));
+      dArray k2(dt * f(yi+0.5L*k1, ti+0.5L*dt));
+      dArray k3(dt * f(yi+0.5L*k2, ti+0.5L*dt));
       dArray k4(dt * f(yi+k3, ti+dt));
-      return yi + 1/6.0*(k1+2.0*k2+2.0*k3+k4);
+      return yi + 1.0L/6.0L*(k1+2.0L*k2+2.0L*k3+k4);
     }
-    double energyTot(){
-      double potSum(0);
-      double kinSum(0);
+
+    long double energyTot(){
+      long double potSum(0);
+      long double kinSum(0);
 
       for(size_t i = 0; i < N; i++)
       {
@@ -156,7 +185,7 @@ protected:
         }
         kinSum += kinEng(i,Y);
       }
-      return kinSum + potSum * 0.5;
+      return kinSum + potSum * 0.5L;
     }
 
 
@@ -165,14 +194,14 @@ protected:
     Exercice4(ConfigFile configFile)
     {
 
-      tFin     = configFile.get<double>("tFin");
+      tFin     = configFile.get<long double>("tFin");
       nSteps   = configFile.get<int>("nSteps");
       dt       = tFin/nSteps;
 
       sampling = configFile.get<unsigned int>("sampling");
       N        = configFile.get<size_t>("N");
       d        = configFile.get<size_t>("d");
-      G        = configFile.get<double>("G");
+      G        = configFile.get<long double>("G");
 
       Y      = dArray(2*N*d);
       M      = dArray(N);
@@ -185,38 +214,38 @@ protected:
       for(size_t i(0); i < N;++i){
         for(size_t j(0); j < d;++j){
           string key("x" + to_string(j + 1) + "_" + to_string(i + 1)); //Convention xj_i
-          Y[i * d + j] = configFile.get<double>(key);
+          Y[i * d + j] = configFile.get<long double>(key);
 
           key = ("v" + to_string(j + 1) + "_" + to_string(i + 1)); //Convention vj_i
-          Y[i * d + j+N*d] = configFile.get<double>(key);
+          Y[i * d + j+N*d] = configFile.get<long double>(key);
         }
       }
 
       for (size_t i(0); i < N; ++i){
         string key("m_" + to_string(i + 1)); //Convention m_i
-        M[i] = configFile.get<double>(key);
+        M[i] = configFile.get<long double>(key);
 
         key = ("r_" + to_string(i + 1)); //Convention r_i
-        R[i] = configFile.get<double>(key);
+        R[i] = configFile.get<long double>(key);
 
         key = ("rho_" + to_string(i + 1)); //Convention rho_i
-        Rho[i] = configFile.get<double>(key);
+        Rho[i] = configFile.get<long double>(key);
 
         if(Rho[i]!=0){
         key = ("lambda_" + to_string(i + 1)); //Convention lambda_i
-        Lambda[i] = configFile.get<double>(key);
+        Lambda[i] = configFile.get<long double>(key);
         }else{
-          Lambda[i] = 0;
+          Lambda[i] = 1.0L;
         }
 
         key = ("Cx_" + to_string(i + 1)); //Convention Cx_i
-        Cx[i] = configFile.get<double>(key);
+        Cx[i] = configFile.get<long double>(key);
 
         if(Cx[i]!=0){
           key = ("S_" + to_string(i + 1)); //Convention S_i
-          S[i] = configFile.get<double>(key);
+          S[i] = configFile.get<long double>(key);
         }else{
-          S[i] = 0;
+          S[i] = 0.0L;
         }
       }
 
@@ -235,11 +264,15 @@ protected:
   {
     t = 0.;
     last = 0;
+    Pnc = pnc(Y);
     printOut(true);
 
-    while( t < tFin-0.5*dt )
+
+    while( t < tFin-0.5L*dt )
     {
       step();
+      Pnc = pnc(Y);
+
       t += dt;
       printOut(false);
     }
@@ -264,6 +297,11 @@ public:
     {
       *outputFile << norm(a(i,Y)) << " ";
     }
+
+    for (size_t i(0); i < N; ++i)
+    {
+      *outputFile << Pnc[i] << " ";
+    }
     *outputFile<< endl;
   }
 
@@ -275,20 +313,22 @@ public:
 class Ex4Adapt : public Exercice4
 {
 public:
-  Ex4Adapt(ConfigFile configFile) : Exercice4(configFile) {
-    e = configFile.get<double>("e");
-    c = 0;
-  }
+  
 
-  double e;
+  long double e;
 
   dArray Y1;
   dArray Y2;
   dArray Y_;
-  double d;
+  long double d;
   bool c;
 
-      void step()
+  Ex4Adapt(ConfigFile configFile) : Exercice4(configFile) {
+    e = configFile.get<long double>("e");
+    c = 0;
+  }
+
+  void step()
   {
     AdaptDt();
   }
@@ -305,25 +345,30 @@ public:
     {
       *outputFile << norm(a(i,Y)) << " ";
     }
-    *outputFile << dt << " " << endl;
+
+    for (size_t i(0); i < N; ++i)
+    {
+      *outputFile << Pnc[i] << " ";
+    }
+    *outputFile << dt << " "<< t <<" "<< Cx[2] << endl;
   }
 
   void AdaptDt(){
     dArray Y1(RK4(Y, t, dt));
-    dArray Y2(RK4(Y, t, dt*0.5));
-    dArray Y_(RK4(Y2, t+dt*0.5, dt*0.5));
+    dArray Y2(RK4(Y, t, dt*0.5L));
+    dArray Y_(RK4(Y2, t+dt*0.5L, dt*0.5L));
 
     Y2 = Y_ - Y1;
     Y2 = abs(Y2);
     d = Y2.max();
 
     if (d >= e){
-      dt *= 0.98 * pow((e / d), 1.0 / 5.0);
+      dt *= 0.98L * pow((e / d), 1.0L / 5.0L);
       //++c;
       AdaptDt();
     }else {
-      dt *= pow((e/d),1.0/5.0);
-      dt = min(dt, tFin-dt);
+      dt *= pow((e/d),1.0L/5.0L);
+      //dt = min(dt, tFin-dt);
       Y = Y_;
 
     }

@@ -79,7 +79,7 @@ dTL = 384748e3;%m
 
 switch Ex
 
-case {'1a','1b','1c'}
+case {'1a','1b','1c','1d'}
 
     % Parametres physiques :
 
@@ -452,33 +452,88 @@ case {'2a','2b'}
                     'e'         ,0.01                );
 
     switch Ex
-        case '2a'
-            fOrbit=figure();
-            hold on;
-            
-            fAcc=figure();
-            hold on;
-            
-            fEff=figure();
-            hold on;
+    case '2a'
+        fOrbit = figure();
+        fAcc = figure();
 
-            %% a) (i)   ====   Comparer solution analytique et numerique:
+        theta = asin (vT/v0);
+        name = [Ex,'.out'];
 
-            % Name of output file to generate
+        sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
+        sA = input_Body([distAT,0],[-v0 * cos(theta) ,v0 * sin(theta)],2,mA,rA,0,0,0.3,2*pi*rA);
 
-            nSimul = 100;
-            theta = asin (vT/v0);
-            epsilon = 0.01
-            voisinage = linspace ( theta -epsilon,theta + epsilon,nSimul)
-            maxEng = ones(1,nSimul);
-            minPosition = ones(1,nSimul);
-            for i = 1:nSimul
-                thetaNow = voisinage(i);
-                name = [Ex,'thetaN=',num2str(thetaNow),'.out'];
-                
+        %%%%%  --- SIMULATION ---   %%%%%
+        if (Resimulate) %test if the file exists
+            %if not:
+            cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, sA);
+            system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+        end
+
+        data = load(name); % Load generated file
+
+        %%%%%   --- Load data   --- %%%%%
+
+        t    = data(:,1);
+        x1_1 = data(:,2);
+        x2_1 = data(:,3);
+        x1_2 = data(:,4);
+        x2_2 = data(:,5);
+        v1_1 = data(:,6);
+        v2_1 = data(:,7);
+        v1_2 = data(:,8);
+        v2_2 = data(:,9);
+        eng  = data(:,10);
+        a1   = data(:,11);
+        a2   = data(:,12);
+        pnc1 = data(:,13);
+        pnc2 = data(:,14);
+        dt   = data(:,15);
+
+        
+        figure(fOrbit)
+        pHal = plot(x1_2,x2_2,'.:');
+        hold on;
+        pT = plot(x1_1,x2_1,'o','MarkerSize',3);
+
+        figure(fAcc)
+        plot(t,a2)
+
+        figure();
+        plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
+
+        figure();
+        plot(t,pnc2);
+            %plotVelExp.DisplayName = 'Model';
+            %plotVelTh.DisplayName   = 'Theory';
+
+    case '2b'
+
+        fOrbit=figure();
+        hold on;
+
+        fAcc=figure();
+        hold on;
+
+        fEff=figure();
+        hold on;
+
+        %% a) (i)   ====   Comparer solution analytique et numerique:
+
+        % Name of output file to generate
+
+        nSimul = 100;
+        theta = 0.19;%asin (vT/v0);
+        epsilon = 0.001;
+        voisinage = linspace ( theta -epsilon,theta + epsilon,nSimul);
+        maxEng = ones(1,nSimul);
+        minPosition = ones(1,nSimul);
+        for i = 1:nSimul
+            thetaNow = voisinage(i);
+            name = [Ex,'thetaN=',num2str(thetaNow),'.out'];
+
             sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
             sA = input_Body([distAT,0],[-v0 * cos(thetaNow) ,v0 * sin(thetaNow)],2,mA,rA,0,0,0.3,2*pi*rA);
-            
+
 
             %%%%%  --- SIMULATION ---   %%%%%
             if (Resimulate) %test if the file exists
@@ -488,9 +543,9 @@ case {'2a','2b'}
             end
 
             data = load(name); % Load generated file
-            
+
             %%%%%   --- Load data   --- %%%%%
-            
+
             t    = data(:,1);
             x1_1 = data(:,2);
             x2_1 = data(:,3);
@@ -503,7 +558,7 @@ case {'2a','2b'}
             eng  = data(:,10);
             a1   = data(:,11);
             a2   = data(:,12);
-            dt   = data(:,13);
+            dt   = data(:,15);
 
             h = sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2);
             index = 1:length(t);
@@ -526,29 +581,25 @@ case {'2a','2b'}
 
             end
 
-            
-            
-            
         end
         figure();
         plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
             %plotVelExp.DisplayName = 'Model';
             %plotVelTh.DisplayName   = 'Theory';
 
-            legend;
-        case '2b'
+        legend;
     end
 
 
-case {'3b','3a'}
+case '3a'
 
-    N        = 2
-    d        = 2
+    N        = 2;
+    d        = 2;
 
-    mL = 7.3477e22%kg
-    rL = 3474e3/2.0%m
+    mL = 7.3477e22;%kg
+    rL = 3474e3/2.0;%m
 
-    distTL0 = 384748e3%m
+    distTL0 = 384748e3;%m
 
     Alpha = mL/(mT+mL);
     Beta = mT/(mT+mL);
@@ -559,7 +610,7 @@ case {'3b','3a'}
     dT = Alpha*distTL0;
     dL = Beta*distTL0;
     % Parametres numeriques :
-    tFin     = 200*24*60*60;
+    tFin     = 10 * 2 * pi * Alpha * distTL0 / vT;
     nSteps   = 100;
     sampling = 1;
 
@@ -580,74 +631,349 @@ case {'3b','3a'}
                     'sampling'  ,sampling           ,...
                     'e'         ,0.01               ,...
                     sT          ,sL                 );
+
+    f=figure();
+    ax = axes(f);
+    %% a) (i)   ====   Comparer solution analytique et numerique:
+
+    % Name of output file to generate
+    name = [Ex,'.out'];
+
+
+    %%%%%  --- SIMULATION ---   %%%%%
+    if (Resimulate) %test if the file exists
+        %if not:
+        cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'A',nSteps);
+            system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+    end
+
+    data = load(name); % Load generated file
+
+    %%%%%   --- Load data   --- %%%%%
+
+    t       = data(:,1);
+    x1_1    = data(:,2);
+    x2_1    = data(:,3);
+    x1_2    = data(:,4);
+    x2_2    = data(:,5);
+    v1_1    = data(:,6);
+    v2_1    = data(:,7);
+    v1_2    = data(:,8);
+    v2_2    = data(:,9);
+    engTot  = data(:,10);
+    d = data(:,16);
+
+    %dt = data(:,10);
+    %d = data(:,11);
+
+
+
+    pHal = plot(ax,x1_2,x2_2,'.--');
+    hold on
+    pT = plot(ax,x1_1,x2_1,'o','MarkerSize',3);
+
+    ax.XLabel.String = 'x [m]'
+    ax.YLabel.String = 'y [m]'
+
+    %plotVelExp.DisplayName = 'Model';
+    %plotVelTh.DisplayName   = 'Theory';
+    distTL = sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2);
+    grid on;
+
+            figure();
+    plot(t,distTL);
+
+    figure();
+    VT =  sqrt((v1_1).^2 + (v2_1).^2)
+    KT = mT * VT.^2*0.5;
+    VL = sqrt((v1_2).^2 + (v2_2).^2);
+    KL = mL * VL.^2*0.5;
+    P = - G * mL * mT ./ distTL
+
+    plot(t,engTot,'g');
+    hold on;
+    plot(t, KT + KL + P,'r');
+
+    figure();
+    plot(t,mL * sqrt((v1_2).^2 + (v2_2).^2) + mT  * sqrt((v1_1).^2 + (v2_1).^2));
+
+    figure();
+    plot(t,d-distTL);
+
+    legend;
+    
+case {'4a','4b'}
+    
+    N        = 3;
+    d        = 2;
+    
+    mL = 7.3477e22;%kg
+    mA = 5809;%kg
+    
+    rA = 3.9/2.0;%m
+    rL = 3474e3/2.0;%m
+    
+    distAT = 314159e3;%km
+    distTL0 = 384748e3;%m
+    
+    v0 = 1.2e3; %m/s
+
+    E = 0.5 * mA * v0^2;
+    E = E - G*mA*mT/distAT;
+
+    rMin = 10000+rT;
+
+    vTan = rMin/distAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/distAT));
+    vRad = -v0 * cos (asin (vTan/v0));
+
+    L = mA *vTan * distAT;
+
+    vMax = L/(mA*rMin);
+
+    Alpha = mL/(mT+mL);
+    Beta = mT/(mT+mL);
+
+    vT = sqrt(G*Alpha*mL/distTL0);
+    vL = sqrt(G*Beta*mT/distTL0);
+
+    dT = Alpha*distTL0;
+    dL = Beta*distTL0;
+
+    
+
+    % Parametres numeriques :
+    tFin     = 10*24*60*60;
+    nSteps   = 10000;
+    sampling = 1;
+
+    config = sprintf(  ['%s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g' ...
+    ' %s=%.15g'] , ...
+                    'N'         ,N                  ,...
+                    'd'         ,d                  ,...
+                    'tFin'      ,tFin               ,...
+                    'G'         ,G                  ,...
+                    'sampling'  ,sampling           ,...
+                    'e'         ,0.01                );
+
     switch Ex
+        case '4a'
+            fOrbit=figure();
+            hold on;
 
-        case '3a'
+            fAcc=figure();
+            hold on;
 
-            f=figure();
-            ax = axes(f);
-            %% a) (i)   ====   Comparer solution analytique et numerique:
+            fEff=figure();
+            hold on;
 
-            % Name of output file to generate
-            name = [Ex,'.out'];
+            nSimul = 100;
 
+            distanceMin = ones(1,nSimul);
+            velocityMax = ones(1,nSimul);
+            timeMax = ones(1,nSimul);
+
+            theta = asin (vTan/v0);
+            epsilon = 0.1;
+            voisinage = linspace ( theta -epsilon,theta + epsilon,nSimul);
+            maxEng = ones(1,nSimul);
+            minPosition = ones(1,nSimul);
+            for i = 1:nSimul
+                thetaNow = voisinage(i);
+                name = [Ex,'thetaN=',num2str(thetaNow),'.out'];
+                %fAcc = figure();
+
+                sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
+                sL = input_Body([dL,0],[0,vL],2,mL,rL);
+                sA = input_Body([distAT-dT,0],[-v0 * cos(thetaNow) ,v0 * sin(thetaNow)-vT],3,mA,rA);
+
+                %%%%%  --- SIMULATION ---   %%%%%
+                if (Resimulate) %test if the file exists
+                    %if not:
+                    cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, sA, sL);
+                    system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+                end
+
+                data = load(name); % Load generated file
+
+                %%%%%   --- Load data   --- %%%%%
+
+                t    = data(:,1);
+                x1_1 = data(:,2);
+                x2_1 = data(:,3);
+                x1_2 = data(:,4);
+                x2_2 = data(:,5);
+                x1_3 = data(:,6);
+                x2_3 = data(:,7);
+                v1_1 = data(:,8);
+                v2_1 = data(:,9);
+                v1_2 = data(:,10);
+                v2_2 = data(:,11);
+                v1_3 = data(:,12);
+                v2_3 = data(:,13);
+                eng  = data(:,14);
+                a1   = data(:,15);
+                a2   = data(:,16);
+                a3   = data(:,17);
+                pnc1 = data(:,18);
+                pnc2 = data(:,19);
+                pnc3 = data(:,20);
+                dt   = data(:,21);
+
+                timeMax(i) = t(end);
+
+                index = 1:length(t);
+
+                v = sqrt((v1_1-v1_3).^2+(v2_1-v2_3).^2);
+                velocityMax(i) = max(v);
+
+                h = sqrt((x1_3-x1_1).^2+(x2_3-x2_1).^2);
+                distanceMin(i) = min(h);
+
+                iMin = index(distanceMin(i)>=h);
+                iMax = index(velocityMax(i)<=v);
+
+
+                %hinter = h(iMin-2:iMin+2);
+                %hfit = fit(t(iMin-2:iMin+2),hinter,'poly2');
+                %x=-hfit.p2/(2*hfit.p1);
+                
+                %plot(x1_2(iMin),x2_2(iMin),'bx','MarkerSize',10);
+
+                %distanceMin(i)=x^2*hfit.p1 + x*hfit.p2 + hfit.p3- rMin;
+
+                %vinter = v(iMax-2:iMax+2);
+                %plot(x1_2(iMax),x2_2(iMax),'rx','MarkerSize',10);
+                %vfit = fit(t(iMax-2:iMax+2),vinter,'poly2');
+                %x=-vfit.p2/(2*vfit.p1);
+
+                %velocityMax(i)=abs(x^2*vfit.p1 + x*vfit.p2 + vfit.p3-vMax);
+
+                figure(fOrbit)
+                    pHal = plot(x1_3-x1_1,x2_3-x2_1,'.:');
+                    hold on;
+                    viscircles([0,0],rT);
+                    
+                    pL = plot(x1_2-x1_1,x2_2-x2_1,'o','MarkerSize',3);
+                    axis equal;
+
+                   
+                
+            end
+            figure();
+            plot(voisinage,distanceMin-rT);
+
+            figure();
+            plot(voisinage,timeMax);
+                %plotVelExp.DisplayName = 'Model';
+                %plotVelTh.DisplayName   = 'Theory';
+
+            legend;
+        case '4b'
+        fOrbit=figure();
+            hold on;
+
+            fAcc=figure();
+            hold on;
+
+            fEff=figure();
+            hold on;
+
+
+
+            theta = asin (vTan/v0);
+            epsilon = 0.1;
+            theta  = theta - epsilon
+            name = [Ex,'theta=',num2str(theta),'.out'];
+            %fAcc = figure();
+
+            sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
+            sL = input_Body([dL,0],[0,vL],2,mL,rL);
+            sA = input_Body([distAT-dT,0],[-v0 * cos(theta) ,v0 * sin(theta)-vT],3,mA,rA);
 
             %%%%%  --- SIMULATION ---   %%%%%
             if (Resimulate) %test if the file exists
                 %if not:
-                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g' , repertoire, executable, inputName,config ,name,'A',nSteps);
-                    system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, sA, sL);
+                system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
             end
 
             data = load(name); % Load generated file
 
             %%%%%   --- Load data   --- %%%%%
 
-            t       = data(:,1);
-            x1_1    = data(:,2);
-            x2_1    = data(:,3);
-            x1_2    = data(:,4);
-            x2_2    = data(:,5);
-            v1_1    = data(:,6);
-            v2_1    = data(:,7);
-            v1_2    = data(:,8);
-            v2_2    = data(:,9);
-            %dt = data(:,10);
-            %d = data(:,11);
+            t    = data(:,1);
+            x1_1 = data(:,2);
+            x2_1 = data(:,3);
+            x1_2 = data(:,4);
+            x2_2 = data(:,5);
+            x1_3 = data(:,6);
+            x2_3 = data(:,7);
+            v1_1 = data(:,8);
+            v2_1 = data(:,9);
+            v1_2 = data(:,10);
+            v2_2 = data(:,11);
+            v1_3 = data(:,12);
+            v2_3 = data(:,13);
+            eng  = data(:,14);
+            a1   = data(:,15);
+            a2   = data(:,16);
+            a3   = data(:,17);
+            pnc1 = data(:,18);
+            pnc2 = data(:,19);
+            pnc3 = data(:,20);
+            dt   = data(:,21);
+
+            tF = t(end)
+            
+            v = sqrt((v1_1-v1_3).^2+(v2_1-v2_3).^2);
+            vMax = max(v)
+
+            h = sqrt((x1_3-x1_1).^2+(x2_3-x2_1).^2);
+            hMin = min(h)
 
 
 
-            pHal = plot(ax,x1_2,x2_2,'.--');
-            hold on
-            pT = plot(ax,x1_1,x2_1,'o','MarkerSize',3);
+            %hinter = h(iMin-2:iMin+2);
+            %hfit = fit(t(iMin-2:iMin+2),hinter,'poly2');
+            %x=-hfit.p2/(2*hfit.p1);
+            
+            %plot(x1_2(iMin),x2_2(iMin),'bx','MarkerSize',10);
 
-            ax.XLabel.String = 'x [m]'
-            ax.YLabel.String = 'y [m]'
+            %distanceMin(i)=x^2*hfit.p1 + x*hfit.p2 + hfit.p3- rMin;
 
-            %plotVelExp.DisplayName = 'Model';
-            %plotVelTh.DisplayName   = 'Theory';
+            %vinter = v(iMax-2:iMax+2);
+            %plot(x1_2(iMax),x2_2(iMax),'rx','MarkerSize',10);
+            %vfit = fit(t(iMax-2:iMax+2),vinter,'poly2');
+            %x=-vfit.p2/(2*vfit.p1);
 
-                  figure();
-            plot(t,sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2));
+            %velocityMax(i)=abs(x^2*vfit.p1 + x*vfit.p2 + vfit.p3-vMax);
+
+            figure(fOrbit)
+                pHal = plot(x1_3-x1_1,x2_3-x2_1,'.:');
+                hold on;
+                viscircles([0,0],rT);
+                
+                pL = plot(x1_2-x1_1,x2_2-x2_1,'o','MarkerSize',3);
+                axis equal;
+
+                   
+                
+
+                %plotVelExp.DisplayName = 'Model';
+                %plotVelTh.DisplayName   = 'Theory';
 
             legend;
-
-        case '3b'
-
-    end
-
-case {'4a','4b'}
-
-    switch Ex
-        case '4a'
-        case '4b'
     end
 case {'5a','5b'}
 
     switch Ex
-        case '5a'
-        case '5b'
-        case '5c'
+    case '5a'
+
+    case '5b'
     end
 
 case {'6a','6b'}
