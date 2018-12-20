@@ -69,12 +69,12 @@ Resimulate = input('Do you want to resimulate [1/0]: ');
 %%% --- Global parameters   --- %%%
 G         = 6.674e-11; %m^3kg^-1s^-2
 %Earth:
-mT = 5.972e24; %kg
-rT = 6378.1e3;%m
+mE = 5.972e24; %kg
+rE = 6378.1e3;%m
 
 %Moon
-mL = 7.3477e22;%kg
-rL = 3474e3/2.0;%m
+mM = 7.3477e22;%kg
+rM = 3474e3/2.0;%m
 
 %Apollo 13:
 mA = 5809;%kg
@@ -103,13 +103,13 @@ case {'1a','1b','1c','1d','1'}
     v0 = 1.2e3; %m/s
 
     %Energy
-    E = 0.5 * mA * v0^2  - G*mA*mT/dAT;
+    E = 0.5 * mA * v0^2  - G*mA*mE/dAT;
 
     %Theoretical approach distance
-    rMin = 10000+rT;
+    rMin = 10000+rE;
 
     %Tangential velocity
-    vTan0 = rMin/dAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/dAT));
+    vTan0 = rMin/dAT*sqrt(v0*v0+G*2*mE*(1.0/rMin-1.0/dAT));
     %Radial velocity
     vRad0 = -v0 * cos (asin (vTan0/v0));
 
@@ -117,7 +117,7 @@ case {'1a','1b','1c','1d','1'}
 
     vMax = L / (mA * rMin);
 
-    sT = input_Body([0  ,0],[0    ,0    ], 1, mT, rT);
+    sT = input_Body([0  ,0],[0    ,0    ], 1, mE, rE);
     sA = input_Body([dAT,0],[vRad0,vTan0], 2, mA, rA);
 
     % Parametres numeriques :
@@ -178,7 +178,7 @@ case {'1a','1b','1c','1d','1'}
             'MarkerEdgeColor',colors(2,:),...
             'MarkerSize', 2);
             hold on
-            eP = viscircles(ax,[0,0],rT/scale,'Color',colors(4,:));
+            eP = viscircles(ax,[0,0],rE/scale,'Color',colors(4,:));
 
             legend(ax,[pHal, eP],{'Apollo 13', 'Earth'})
 
@@ -725,11 +725,11 @@ case {'2a','2b'}
 
 
     E = 0.5 * mA * v0^2;
-    E = E - G*mA*mT/dAT;
+    E = E - G*mA*mE/dAT;
 
-    rMin = 10000+rT;
+    rMin = 10000+rE;
 
-    vTan0 = rMin/dAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/dAT));
+    vTan0 = rMin/dAT*sqrt(v0*v0+G*2*mE*(1.0/rMin-1.0/dAT));
     vRad0 = -v0 * cos (asin (vTan0/v0));
 
     L = mA *vTan0 * dAT;
@@ -764,7 +764,7 @@ case {'2a','2b'}
         theta = asin (vTan0/v0);
         name = [Ex,'.out'];
 
-        sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
+        sT = input_Body([0,0],[0,0],1,mE,rE,1.2,7238.2,0,0);
         sA = input_Body([dAT,0],[-v0 * cos(theta) ,v0 * sin(theta)],2,mA,rA,0,0,0.3,2*pi*rA);
 
         %%%%%  --- SIMULATION ---   %%%%%
@@ -930,7 +930,7 @@ case {'2a','2b'}
             thetaNow = voisinage(i);
             name = [Ex,'thetaN=',num2str(thetaNow),'.out'];
 
-            sT = input_Body([0,0],[0,0],1,mT,rT,1.2,7238.2,0,0);
+            sT = input_Body([0,0],[0,0],1,mE,rE,1.2,7238.2,0,0);
             sA = input_Body([dAT,0],[-v0 * cos(thetaNow) ,v0 * sin(thetaNow)],2,mA,rA,0,0,0.3,2*pi*rA);
 
 
@@ -961,8 +961,8 @@ case {'2a','2b'}
 
             h = sqrt((x1_2-x1_1).^2+(x2_2-x2_1).^2);
             index = 1:length(t);
-            if(min(h) <= rT + rA)
-                Range = index(h>rT+rA);
+            if(min(h) <= rE + rA)
+                Range = index(h>rE+rA);
 
                 figure(fOrbit)
                 pHal = plot((x1_2(Range)-x1_1(Range))/scale,(x2_2(Range)-x2_1(Range))/scale,...
@@ -973,7 +973,7 @@ case {'2a','2b'}
                     '.',...
                     'MarkerSize', 2);
                     hold on
-                    eP = viscircles([0,0],rT/scale,'Color',colors(4,:));
+                    eP = viscircles([0,0],rE/scale,'Color',colors(4,:));
 
                 legend([pHal, eP],{'Apollo 13', 'Earth'})
                 axis image;
@@ -1000,15 +1000,40 @@ case {'2a','2b'}
 
 
 case '3a'
+    fOrbit=figure();
+    axOrbit = axes(fOrbit);
+        hold(axOrbit,'on');
+        daspect(axOrbit,[1 1 1])
+
+    fdEM=figure();
+        axdEM = axes(fdEM);
+        hold(axdEM,'on');
+
+    fP=figure();
+        axP = axes(fP);
+        hold(axP,'on');
+
+    fEng=figure();
+        axEng = axes(fEng);
+        hold(axEng,'on');
+
+    fOrbitZ  = figure();
+        axOrbitZ = axes(fOrbitZ);
+        hold(axOrbitZ,'on')
+        daspect(axOrbitZ,[1 1 1])
 
     N        = 2;
     d        = 2;
 
-    Alpha = mL/(mT+mL);
-    Beta = mT/(mT+mL);
+    Alpha = mM/(mE+mM);
+    Beta = mE/(mE+mM);
 
-    vT = sqrt(G*Alpha*mL/dTL);
-    vL = sqrt(G*Beta*mT/dTL);
+    vT = sqrt(G*Alpha*mM/dTL);
+    vL = sqrt(G*Beta*mE/dTL);
+
+    zSquare = [-1.5e7,-1.5e7,3e7,3e7];
+    zBound  = [zSquare(1),zSquare(2),zSquare(3)+zSquare(1),zSquare(4)+zSquare(2)];
+    zLim = [zBound(1) zBound(3) zBound(2) zBound(4)];
 
     dT = Alpha*dTL;
     dL = Beta*dTL;
@@ -1017,8 +1042,8 @@ case '3a'
     nSteps   = 100;
     sampling = 1;
 
-    sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
-    sL = input_Body([dL,0],[0,vL],2,mL,rL);
+    sT = input_Body([-dT,0],[0,-vT],1,mE,rE);
+    sL = input_Body([dL,0],[0,vL],2,mM,rM);
 
     config = sprintf(  ['%s=%.15g' ...
     ' %s=%.15g' ...
@@ -1035,10 +1060,6 @@ case '3a'
                     'e'         ,0.01               ,...
                     sT          ,sL                 );
 
-    f=figure();
-    ax = axes(f);
-    %% a) (i)   ====   Comparer solution analytique et numerique:
-
     % Name of output file to generate
     name = [Ex,'.out'];
 
@@ -1054,62 +1075,143 @@ case '3a'
 
     %%%%%   --- Load data   --- %%%%%
 
-    t       = data(:,1);
-    x1_1    = data(:,2);
-    x2_1    = data(:,3);
-    x1_2    = data(:,4);
-    x2_2    = data(:,5);
-    v1_1    = data(:,6);
-    v2_1    = data(:,7);
-    v1_2    = data(:,8);
-    v2_2    = data(:,9);
-    engTot  = data(:,10);
-    d = data(:,end);
+    t    = data(:,1);
+    posEarth  = data(:,2:3);
+    posMoon   = data(:,4:5);
+    velEarth  = data(:,6:7);
+    velMoon   = data(:,8:9);
+    eng  = data(:,10);
+    accEarth  = data(:,11);
+    accMoon   = data(:,12);
+    pncEarth  = data(:,13);
+    pncMoon   = data(:,14);
+    dt        = data(:,15);
 
-    %dt = data(:,10);
-    %d = data(:,11);
+    % Orbits:
+
+    orbE = plot(axOrbit,posEarth(:,1)/scale,posEarth(:,2)/scale,...
+        '.:'                                ,...
+        'Color',            M('light green') ,...
+        'MarkerEdgeColor',  M('dark green') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
+    hold(axOrbit,'on');
+    orbM = plot(axOrbit,posMoon(:,1)/scale,posMoon(:,2)/scale,...
+        '.:'                                ,...
+        'Color',            M('light blue') ,...
+        'MarkerEdgeColor',  M('dark blue') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
+
+    Earth0 = viscircles(axOrbit,posEarth(1,:)/scale   ,...
+                rE/scale                        ,...
+                'LineWidth',    1               ,...
+                'Color',        M('dark green') );
+
+    Moon0 = viscircles(axOrbit,posMoon(1,:)/scale   ,...
+                rM/scale                        ,...
+                'LineWidth',    1               ,...
+                'Color',        M('light blue') );
+
+    rectangle(axOrbit,'Position',zSquare/scale);
+
+    r           = plot(axOrbit,nan,nan,...
+        'ks'                ,....
+        'MarkerSize',   5   ,...
+        'LineWidth',    1   );
+
+    moonMarker  = plot(axOrbit,nan,nan,...
+        'o'                                 ,...
+        'MarkerEdgeColor',M('light blue')   ,...
+        'MarkerSize'    ,4                  ,...
+        'LineWidth'     ,1                  );
+
+    earthMarker = plot(axOrbit,nan,nan,...
+        'o'                                 ,...
+        'MarkerEdgeColor',M('dark green')   ,...
+        'MarkerSize'    ,5                  ,...
+        'LineWidth'     ,1);
+
+    l = legend (axOrbit,[orbM,orbE,moonMarker,earthMarker, r],...
+                {'Moon' 'Earth' 'Moon start' 'Earth start' 'zoom'},...
+                'Location'  ,'best' ,...
+                'FontSize'  ,8      );
+
+    set(legend,'FontSize',7)
+    grid off;
+    axOrbit.XLabel.String = 'x [km]';
+    axOrbit.YLabel.String = 'y [km]';
+    axis(axOrbit,'tight');
+    a = axis(axOrbit);
+    dx = abs(a(1)-a(2));
+    dy = abs(a(3)-a(4));
+    axis(axOrbit,[(a(1) - dx/50) (a(2) + dx/50) (a(3) -dy/50) (a(4) + dy/50)]);
 
 
+    % --- Zoom:
 
-    pHal = plot(ax,x1_2,x2_2,'.--');
-    hold on
-    pT = plot(ax,x1_1,x2_1,'o','MarkerSize',3);
+    orbE = plot(axOrbitZ,posEarth(:,1)/scale,posEarth(:,2)/scale,...
+        '.:'                                ,...
+        'Color',            M('light green') ,...
+        'MarkerEdgeColor',  M('dark green') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
+    hold(axOrbitZ,'on');
 
-    ax.XLabel.String = 'x [m]'
-    ax.YLabel.String = 'y [m]'
+    Earth0 = viscircles(axOrbitZ,posEarth(1,:)/scale   ,...
+                rE/scale                        ,...
+                'LineWidth',    1               ,...
+                'Color',        M('dark green') );
 
-    %plotVelExp.DisplayName = 'Model';
-    %plotVelTh.DisplayName   = 'Theory';
-    distTL = sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2);
-    grid on;
+    axOrbitZ.XLabel.String = 'x [km]';
+    axOrbitZ.YLabel.String = 'y [km]';
+    axis(axOrbitZ,zLim/scale);
 
-    figure();
-    plot(t,distTL-distTL(1),'-',...
-            'LineWidth',1,...
-            'Color',colors(2,:));
-    figure();
-    VT =  sqrt((v1_1).^2 + (v2_1).^2)
-    KT = mT * VT.^2*0.5;
-    VL = sqrt((v1_2).^2 + (v2_2).^2);
-    KL = mL * VL.^2*0.5;
-    P = - G * mL * mT ./ distTL;
 
-    plot(t,engTot-engTot(1),'-',...
-            'LineWidth',1,...
-            'Color',colors(2,:));
+    % --- Dist EM:
+
+    dEM = sqrt(sum((posEarth-posMoon).^2,2));
+
+    pdEM = plot(axdEM,t,dEM-dEM(1),...
+        '.:'                                ,...
+        'Color',            M('light blue') ,...
+        'MarkerEdgeColor',  M('dark blue') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
+
+    axdEM.XLabel.String = 't [s]';
+    axdEM.YLabel.String = 'distance earth moon [km]';
+
+    VE =  sqrt(sum(posEarth.^2,2));
+    KE = mE * VE.^2*0.5;
+    VM = sqrt(sum(posMoon.^2,2));
+    KM = mM * VM.^2*0.5;
+    P = - G * mM * mE ./ dEM;
+
+    pEng = plot(axEng,t,eng-eng(1),...
+        '.:'                                ,...
+        'Color',            M('light blue') ,...
+        'MarkerEdgeColor',  M('dark blue') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
+
+    axEng.XLabel.String = 't [s]';
+    axEng.YLabel.String = 'Energy [J]';
+
+
+    pE = mE * velEarth;
+    pM = mM * velEarth;
+    pTot=sqrt(sum((pE + pM).^2,2));
+    plot(axP,t,pTot - pTot(1),...
+        '.:'                                ,...
+        'Color',            M('light blue') ,...
+        'MarkerEdgeColor',  M('dark blue') ,...
+        'MarkerSize',       2               ,...
+        'LineWidth',        1   );
     
-    figure();
-    pTot=sqrt((mL * x1_2 + mT * x1_1).^2 + (mL * x2_2 + mT * x2_1).^2)
-    plot(t,pTot - pTot(1),'-',...
-            'LineWidth',1,...
-            'Color',colors(2,:));
+    axP.XLabel.String = 't [s]';
+    axP.YLabel.String = 'momentum[kg m / s]';
 
-    legend;
-    
-    
-    
-    
-    
     
     
 case {'4a','4b'}
@@ -1119,16 +1221,16 @@ case {'4a','4b'}
 
     v0 = 1.2e3; %m/s
 
-    rMin = 10000+rT;
+    rMin = 10000+rE;
 
-    vTan = rMin/dAT*sqrt(v0*v0+G*2*mT*(1.0/rMin-1.0/dAT));
+    vTan = rMin/dAT*sqrt(v0*v0+G*2*mE*(1.0/rMin-1.0/dAT));
     vRad = -v0 * cos (asin (vTan/v0));
 
-    Alpha = mL/(mT+mL);
-    Beta = mT/(mT+mL);
+    Alpha = mM/(mE+mM);
+    Beta = mE/(mE+mM);
 
-    vT = sqrt(G*Alpha*mL/dTL);
-    vL = sqrt(G*Beta*mT/dTL);
+    vT = sqrt(G*Alpha*mM/dTL);
+    vL = sqrt(G*Beta*mE/dTL);
 
     dT = Alpha*dTL;
     dL = Beta*dTL;
@@ -1182,8 +1284,8 @@ case {'4a','4b'}
                 name     = [Ex,'thetaN=',num2str(thetaNow),'.out'];
                 %fAcc    = figure();
 
-                sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
-                sL = input_Body([dL,0],[0,vL],2,mL,rL);
+                sT = input_Body([-dT,0],[0,-vT],1,mE,rE);
+                sL = input_Body([dL,0],[0,vL],2,mM,rM);
                 sA = input_Body([dAT-dT,0],[-v0 * cos(thetaNow) ,v0 * sin(thetaNow)-vT],3,mA,rA);
 
                 %%%%%  --- SIMULATION ---   %%%%%
@@ -1268,17 +1370,17 @@ case {'4a','4b'}
                 'Color',        M('dark red')   );
 
             Moon0 = viscircles(axOrbit,[Lx(1),Ly(1)],...
-                rL/scale                        ,...
+                rM/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('light blue') );
 
             Earth = viscircles(axOrbit,[0,0]    ,...
-                rT/scale                        ,...
+                rE/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('dark green') );
 
             EarthZ = viscircles(axOrbitZ,[0,0],...
-                rT/scale                        ,...
+                rE/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('dark green') );
 
@@ -1359,6 +1461,7 @@ case {'4a','4b'}
             daspect(axOrbitZ,[1 1 1])
 
             %Zoom:
+            
             zSquare = [-8e6,0,4e6,4e6];
             zBound  = [zSquare(1),zSquare(2),zSquare(3)+zSquare(1),zSquare(4)+zSquare(2)];
             zLim = [zBound(1) zBound(3) zBound(2) zBound(4)];
@@ -1381,9 +1484,9 @@ case {'4a','4b'}
                 %fAcc       = figure();
 
                 sT = input_Body([-dT,0], [0,-vT], 1 ,...
-                    mT, rT, 1.2, 7238.2, 0, 0       );
+                    mE, rE, 1.2, 7238.2, 0, 0       );
                 sL = input_Body([dL,0], [0,vL], 2   ,...
-                    mL, rL                          );
+                    mM, rM                          );
                 sA = input_Body([dAT-dT,0], [-v0 * cos(thetaNow) ,v0 * sin(thetaNow)-vT],...
                     3, mA, rA, 0, 0, 0.3, 2*pi*rA);
 
@@ -1432,7 +1535,7 @@ case {'4a','4b'}
                 zoomP = excludedata(Ax,Ay,'box',zBound/scale);
                 zoomP = ~zoomP;
 
-                Range = h>rT+rA;
+                Range = h>rE+rA;
 
                 pA = plot(axOrbit,posApollo(Range,1)/scale,posApollo(Range,2)/scale,'.:');
                 pAZ = plot(axOrbitZ,posApollo(Range,1)/scale,posApollo(Range,2)/scale,'.:');
@@ -1444,7 +1547,7 @@ case {'4a','4b'}
 
                 plot(axAcc,t(Range),accApollo(Range));
 
-                reachSurface(i) = min(h) <= rT + rA;
+                reachSurface(i) = min(h) <= rE + rA;
 
                 if(reachSurface(i))
                     maxAcc(i) = max(accApollo(Range));
@@ -1466,13 +1569,13 @@ case {'4a','4b'}
 
 
             Moon0 = viscircles(axOrbit,[posMoon(1,:)/scale],...
-                rL/scale                        ,...
+                rM/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('light blue') );
 
 
             Earth = viscircles(axOrbit,[0,0]    ,...
-                rT/scale                        ,...
+                rE/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('dark green') );
 
@@ -1497,7 +1600,7 @@ case {'4a','4b'}
 
         % Zoom plot:
             EarthZ = viscircles(axOrbitZ,[0,0],...
-                rT/scale                        ,...
+                rE/scale                        ,...
                 'LineWidth',    1               ,...
                 'Color',        M('dark green') );
 
@@ -1542,15 +1645,14 @@ case {'4a','4b'}
     end
 case {'5a','5b'}
 
-     
     N        = 3;
     d        = 2;
 
-    Alpha = mL/(mT+mL);
-    Beta = mT/(mT+mL);
+    Alpha = mM/(mE+mM);
+    Beta = mE/(mE+mM);
 
-    vT = sqrt(G*Alpha*mL/dTL);
-    vL = sqrt(G*Beta*mT/dTL);
+    vT = sqrt(G*Alpha*mM/dTL);
+    vL = sqrt(G*Beta*mE/dTL);
 
     dT = Alpha*dTL;
     dL = Beta*dTL;
@@ -1587,13 +1689,15 @@ case {'5a','5b'}
     switch Ex
     case '5a'
         fOrbit=figure();
-            hold on;
+        hold on;
+
+        
 
             name = [Ex,'.out'];
                 %fAcc = figure();
 
-            sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
-            sL = input_Body([dL,0],[0,vL],2,mL,rL);
+            sT = input_Body([-dT,0],[0,-vT],1,mE,rE);
+            sL = input_Body([dL,0],[0,vL],2,mM,rM);
             s3 = input_Body([d3x0,d3y0],[v3x0,v3y0],3,mA,rA);
 
             %%%%%  --- SIMULATION ---   %%%%%
@@ -1656,14 +1760,14 @@ case {'5a','5b'}
             figure()
             viscircles([posMoon(:,1) .* rotx(:,1) + posMoon(:,2) .* rotx(:,2),...
                 posMoon(:,1) .* roty(:,1) + posMoon(:,2) .* roty(:,2)]/scale,...
-                rL*ones(size(t))/scale,...
+                rM*ones(size(t))/scale,...
                 'LineWidth',    1               ,...
                 'Color',        M('light blue'));
             hold on;
 
             viscircles([posEarth(:,1) .* rotx(:,1) + posEarth(:,2) .* rotx(:,2),...
                 posEarth(:,1) .* roty(:,1) + posEarth(:,2) .* roty(:,2)]/scale,...
-                rT*ones(size(t))/scale,...
+                rE*ones(size(t))/scale,...
                 'LineWidth',    1               ,...
                 'Color',        M('dark green'));
 
@@ -1707,79 +1811,146 @@ case {'5a','5b'}
 
     case '5b'
         fOrbit=figure();
+        hold on;
+
+        fOrbitZ  = figure();
+        axOrbitZ = axes(fOrbitZ);
+        hold(axOrbitZ,'on')
+        daspect(axOrbitZ,[1 1 1])
+
+        zSquare = [1.6e8,3.1e8,5.5e7,5.5e7];
+        zBound  = [zSquare(1),zSquare(2),zSquare(3)+zSquare(1),zSquare(4)+zSquare(2)];
+        zLim = [zBound(1) zBound(3) zBound(2) zBound(4)];
+
+
+
+        name = [Ex,'.out'];
+            %fAcc = figure();
+
+        sT = input_Body([-dT,0],[0,-vT],1,mE,rE);
+        sL = input_Body([dL,0],[0,vL],2,mM,rM);
+        s3 = input_Body([d3x0-2341e3,d3y0+3000e3],[v3x0,v3y0],3,mA,rA);
+
+        %%%%%  --- SIMULATION ---   %%%%%
+        if (Resimulate) %test if the file exists
+            %if not:
+            cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, s3, sL);
+            system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
+        end
+
+        data = load(name); % Load generated file
+
+        %%%%%   --- Load data   --- %%%%%
+
+        t        = data(:,1);
+        posEarth = data(:,2:3);
+        posMoon  = data(:,4:5);
+        posSat   = data(:,6:7);
+        velEarth = data(:,8:9);
+        velMoon  = data(:,10:11);
+        velSat   = data(:,12:13);
+        eng      = data(:,14);
+        accEarth = data(:,15);
+        accMoon  = data(:,16);
+        accSat   = data(:,17);
+        pncEarth = data(:,18);
+        pncMoon  = data(:,19);
+        pncSat   = data(:,20);
+        dt       = data(:,21);
+
+
+        figure(fOrbit)
+            pSat = plot(posSat(:,1),posSat(:,2),'.:');
             hold on;
+            pT = plot(posEarth(:,1),posEarth(:,2),...
+                'o',...
+                'MarkerSize',3);
 
-            name = [Ex,'.out'];
-                %fAcc = figure();
+            pL = plot(posMoon(:,1),posMoon(:,2)',...
+                'o',...
+                'MarkerSize',3);
+            axis equal;
+            xlabel('x [km]');
+        ylabel('y [km]');
 
-            sT = input_Body([-dT,0],[0,-vT],1,mT,rT);
-            sL = input_Body([dL,0],[0,vL],2,mL,rL);
-            s3 = input_Body([d3x0,d3y0],[v3x0,v3y0],3,mA,rA);
+        dT3 = sqrt(sum((posEarth-posSat).^2,2));
+        dL3 = sqrt(sum((posMoon-posSat).^2,2));
 
-            %%%%%  --- SIMULATION ---   %%%%%
-            if (Resimulate) %test if the file exists
-                %if not:
-                cmd = sprintf('%s%s %s %s output=%s schema=%s nSteps=%.15g %s %s %s' , repertoire, executable, inputName,config ,name,'A',nSteps, sT, s3, sL);
-                system(strcat("wsl ",cmd)); % Wsl to compile using gcc on the wsl (windows subsystem for linux)
-            end
+        figure()
+        plot(t,(dT3-dT3(1))/scale);
+        ylabel('distance Earth-Satellite [km]');
+        xlabel('t [s]');
+        figure()
+        plot(t,(dL3-dL3(1))/scale);
+        ylabel('distance Moon-Satellite [km]');
+        xlabel('t [s]');
 
-            data = load(name); % Load generated file
+        rotx = posMoon/dL;
+        roty = [-posMoon(:,2) posMoon(:,1)]/dL;
 
-            %%%%%   --- Load data   --- %%%%%
+        figure()
+        viscircles([posMoon(:,1) .* rotx(:,1) + posMoon(:,2) .* rotx(:,2),...
+            posMoon(:,1) .* roty(:,1) + posMoon(:,2) .* roty(:,2)]/scale,...
+            rM*ones(size(t))/scale,...
+            'LineWidth',    1               ,...
+            'Color',        M('light blue'));
+        hold on;
 
-            t    = data(:,1);
-            x1_1 = data(:,2);
-            x2_1 = data(:,3);
-            x1_2 = data(:,4);
-            x2_2 = data(:,5);
-            x1_3 = data(:,6);
-            x2_3 = data(:,7);
-            v1_1 = data(:,8);
-            v2_1 = data(:,9);
-            v1_2 = data(:,10);
-            v2_2 = data(:,11);
-            v1_3 = data(:,12);
-            v2_3 = data(:,13);
-            eng  = data(:,14);
-            a1   = data(:,15);
-            a2   = data(:,16);
-            a3   = data(:,17);
-            pnc1 = data(:,18);
-            pnc2 = data(:,19);
-            pnc3 = data(:,20);
-            dt   = data(:,21);
+        viscircles([posEarth(:,1) .* rotx(:,1) + posEarth(:,2) .* rotx(:,2),...
+            posEarth(:,1) .* roty(:,1) + posEarth(:,2) .* roty(:,2)]/scale,...
+            rE*ones(size(t))/scale,...
+            'LineWidth',    1               ,...
+            'Color',        M('dark green'));
 
+        rectangle('Position',zSquare/scale);
 
-            figure(fOrbit)
-                pHal = plot(x1_3,x2_3,'.:');
-                hold on;
-                pT = plot(x1_1,x2_1,'o');
+        r    = plot(nan,nan,...
+            'ks'                ,....
+            'MarkerSize',   5   ,...
+            'LineWidth',    1   );
 
-                pL = plot(x1_2,x2_2,'o','MarkerSize',3);
-                axis equal;
+        moonMarker  = plot(nan,nan,...
+            'o'                                 ,...
+            'MarkerEdgeColor',M('light blue')   ,...
+            'MarkerSize'    ,4                  ,...
+            'LineWidth'     ,1                  );
 
+        earthMarker = plot(nan,nan,...
+            'o'                                 ,...
+            'MarkerEdgeColor',M('dark green')   ,...
+            'MarkerSize'    ,5                  ,...
+            'LineWidth'     ,1);
 
-            dT3 = sqrt((x1_3-x1_1).^2 + (x2_3-x2_1).^2);
-            dL3 = sqrt((x1_3-x1_2).^2 + (x2_3-x2_2).^2);
+        pSat = plot((posSat(:,1) .* rotx(:,1) + posSat(:,2) .* rotx(:,2))/scale,...
+            (posSat(:,1) .* roty(:,1) + posSat(:,2) .* roty(:,2) )/scale,...
+            'o',...
+            'MarkerSize',1,...
+            'MarkerEdgeColor',M('dark purple') );
 
-            figure()
-            plot(t,dT3-dT3(1));
-            figure()
-            plot(t,dL3-dL3(1));
-            figure()
-            viscircles([x1_2 .* x1_2/dL + x2_2/dL.*x2_2,x2_2 .* x1_2/dL - x2_2/dL.*x1_2],rL*ones(size(t)));
-            hold on;
+        l = legend ([pSat,earthMarker,moonMarker,r],...
+            {'Satellite traj.' 'Moon' 'Earth' 'Zoom'},...
+            'Location'  ,'best' ,...
+            'FontSize'  ,8      );
+            set(l,'FontSize',7)
 
-            viscircles([x1_1 .* x1_2/dL + x2_2/dL.*x2_1,x2_1 .* x1_2/dL - x2_2/dL.*x1_1],rT*ones(size(t)));
+        xlabel('x [km]');
+        ylabel('y [km]');
+        daspect([1 1 1]);
+        axis('tight');
+        a = axis;
+        dx = abs(a(1)-a(2));
+        dy = abs(a(3)-a(4));
+        axis([(a(1) - dx/30) (a(2) + dx/30) (a(3) -dy/30) (a(4) + dy/30)]);
 
-            plot(x1_3 .* x1_2/dL + x2_2/dL.*x2_3,x2_3 .* x1_2/dL - x2_2/dL.*x1_3);
+        pSatZ = plot(axOrbitZ,(posSat(:,1) .* rotx(:,1) + posSat(:,2) .* rotx(:,2))/scale,...
+            (posSat(:,1) .* roty(:,1) + posSat(:,2) .* roty(:,2) )/scale,...
+            '.',...
+            'MarkerSize',2,...
+            'MarkerEdgeColor',M('dark purple') );
 
-
-
-            %plotVelExp.DisplayName = 'Model';
-            %plotVelTh.DisplayName   = 'Theory';
-
-        legend;
+        axis(axOrbitZ,zLim/scale);
+        axOrbitZ.XLabel.String = 'x [km]';
+        axOrbitZ.YLabel.String = 'y [km]';
     end
 
 case {'6a','6b','6c','6d'}
@@ -1788,19 +1959,19 @@ case {'6a','6b','6c','6d'}
     N        = 2;
     d        = 2;
     
-    mT = 5.972e24; %kg
-    rT = 6378.1e3; %m
+    mE = 5.972e24; %kg
+    rE = 6378.1e3; %m
 
-    mL = 7.3477e22; %kg
-    rL = 3474e3/2.0; %m
+    mM = 7.3477e22; %kg
+    rM = 3474e3/2.0; %m
 
     distTL0 = 384748e3; %m
 
-    Alpha = mL/(mT+mL);
-    Beta = mT/(mT+mL);
+    Alpha = mM/(mE+mM);
+    Beta = mE/(mE+mM);
 
-    vT = sqrt(G*Alpha*mL/distTL0);
-    vL = sqrt(G*Beta*mT/distTL0);
+    vT = sqrt(G*Alpha*mM/distTL0);
+    vL = sqrt(G*Beta*mE/distTL0);
 
     dT = Alpha*distTL0;
     dL = Beta*distTL0;
@@ -1846,10 +2017,10 @@ case {'6a','6b','6c','6d'}
                     'v2_1'      ,-vT                ,...
                     'v1_2'      ,0                 ,...
                     'v2_2'      ,vL                 ,...
-                    'm_1'       ,mT                 ,...
-                    'r_1'       ,rT                 ,...
-                    'm_2'       ,mL                 ,...
-                    'r_2'       ,rL                 ,...
+                    'm_1'       ,mE                 ,...
+                    'r_1'       ,rE                 ,...
+                    'm_2'       ,mM                 ,...
+                    'r_2'       ,rM                 ,...
                     'G'         ,G                  ,...
                     'rho_1'       ,0                  ,...
                     'S_1'         ,0                  ,...
@@ -1898,9 +2069,9 @@ case {'6a','6b','6c','6d'}
             grid on
             hold on
             pHal = plot(ax,x1_2/scale,x2_2/scale,'.');
-            viscircles(ax,[x1_2(1)/scale x2_2(1)/scale],rL/scale,'Color',colors(2,:));
+            viscircles(ax,[x1_2(1)/scale x2_2(1)/scale],rM/scale,'Color',colors(2,:));
             pT = plot(ax,x1_1/scale,x2_1/scale,'.');
-            viscircles(ax,[x1_1(1)/scale x2_1(1)/scale],rT/scale,'Color',colors(4,:));
+            viscircles(ax,[x1_1(1)/scale x2_1(1)/scale],rE/scale,'Color',colors(4,:));
             ax.XLabel.String = 'x [ua]';
             ax.YLabel.String = 'y [ua]';
             legend('Moon trajectory','Moon initial position',...
@@ -1910,15 +2081,15 @@ case {'6a','6b','6c','6d'}
         case '6b'
             figure
             grid on
-            KT = mT*(v1_1.*v1_1+v2_1.*v2_1)/2;
-            KL = mL*(v1_2.*v1_2+v2_2.*v2_2)/2;
+            KT = mE*(v1_1.*v1_1+v2_1.*v2_1)/2;
+            KL = mM*(v1_2.*v1_2+v2_2.*v2_2)/2;
             distTL = sqrt((x1_1-x1_2).^2 + (x2_1-x2_2).^2);
-            GP = G*mT*mL./distTL;
+            GP = G*mE*mM./distTL;
             plot(t,KT + KL - GP)
         case '6c'
             figure
             grid on
-            plot(t,mT*sqrt(v1_1.*v1_1+v2_1.*v2_1)+mL*sqrt(v1_2.*v1_2+v2_2.*v2_2))
+            plot(t,mE*sqrt(v1_1.*v1_1+v2_1.*v2_1)+mM*sqrt(v1_2.*v1_2+v2_2.*v2_2))
         case '6d'
             figure
             grid on
@@ -1993,44 +2164,4 @@ function inputS =  input_Body(x,v,N,m,r,varargin)
 end
 
 
-function [p z] = zoomPlot(x,y,xbounds,pos,varargin)
-    % Please retain the following:
-    % 
-    % Original Author: 
-    % Kelsey Bower, kelsey.bower@case.edu
-    if nargin > 5
-        printf('Too many arguments. zoomPlot(x,y,xbounds,pos,vertex)\n')
-    elseif nargin < 5
-        vertex = [1 4];
-    elseif nargin == 5
-        vertex = varargin{1};
-    end
-    % Get current axis position and limits
-    p = gca;
-    % Calculate x,y points of zoomPlot
-    x1 = (pos(1)-p.Position(1))/p.Position(3)*diff(p.XLim)+p.XLim(1);
-    x2 = (pos(1)+pos(3)-p.Position(1))/p.Position(3)*diff(p.XLim)+(p.XLim(1));
-    y1 = (pos(2)-p.Position(2))/p.Position(4)*diff(p.YLim)+p.YLim(1);
-    y2 = ((pos(2)+pos(4)-p.Position(2))/p.Position(4))*diff(p.YLim)+p.YLim(1);
-    % Plot lines connecting zoomPlot to original plot points
-    index = find(x>=xbounds(1) & x<=xbounds(2)); % Find indexes of points in zoomPlot
-    rectangle('Position',[xbounds(1) min(y(index)) diff(xbounds) max(y(index))-min(y(index))]);
-    hold on
-    if any(vertex==1)
-        plot([xbounds(1) x1], [max(y(index)) y2], 'k'); % Line to vertex 1
-    end
-    if any(vertex==2)
-        plot([xbounds(2) x2], [max(y(index)) y2], 'k'); % Line to vertex 2
-    end
-    if any(vertex==3)
-        plot([xbounds(2) x2], [min(y(index)) y1], 'k'); % Line to vertex 4
-    end
-    if any(vertex==4)
-        plot([xbounds(1) x1], [min(y(index)) y1], 'k'); % Line to vertex 3
-    end
-    % Plot zoomPlot and change axis
-    z = axes('position',pos);
-    box on 
-    plot(x,y)
-    axis([xbounds(1) xbounds(2) min(y(index)) max(y(index))]);
-end
+
