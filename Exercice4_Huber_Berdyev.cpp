@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iomanip>
 #include <string>
+#include <limits>
 #include <valarray>
 #include "ConfigFile.tpp" // Fichier .tpp car inclut un template
 
@@ -70,7 +71,7 @@ private:
           dArray fd(Fdrag(i, j, y));
           for (size_t k(0); k < d; ++k)
           {
-            pnci += y[d * i + N * d + k] + fd[k];
+            pnci += y[d * i + N * d + k] * fd[k];
           }
         }
       }
@@ -275,7 +276,7 @@ public:
 
     // Ouverture du fichier de sortie
     outputFile = new ofstream(configFile.get<string>("output").c_str());
-    outputFile->precision(15);
+    outputFile->precision(std::numeric_limits<long double>::digits10 + 1);
   };
 
   virtual ~Exercice4()
@@ -373,7 +374,7 @@ public:
     {
       *outputFile << Pnc[i] << " ";
     }
-    *outputFile << dt << " " << endl;
+    *outputFile << dt << " " << dist(1,2,Y)<< endl;
   }
 
   void AdaptDt()
